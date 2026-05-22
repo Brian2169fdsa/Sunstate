@@ -1,0 +1,126 @@
+/* Manage AI Design System — Colors & Typography
+ * Source of truth: ManageAI Design System Guide v1.0 (March 2026)
+ * Mirrors the design-token object T from the guide for parity in HTML/CSS prototypes.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ── Surface & background ────────────────────────────────── */
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-alt: #F5F6F8;
+  --surface-hover: #EDF0F4;
+  --border: #E2E6EC;
+  --border-light: #EEF0F4;
+
+  /* ── Text ────────────────────────────────────────────────── */
+  --text: #1E293B;            /* fg1 — headings, primary content */
+  --text-secondary: #475569;  /* fg2 — body, descriptions */
+  --text-tertiary: #7A8B9A;   /* fg3 — labels, captions, inactive nav */
+
+  /* ── Brand / accent ──────────────────────────────────────── */
+  --nav-bg: #1E3348;          /* dark navy — active nav tab only */
+  --accent: #4A8FD6;          /* Manage AI blue */
+  --accent-light: #EBF3FC;
+  --accent-mid: #6BAAE0;
+  --accent-dark: #2D6AAF;
+
+  /* ── Semantic colors (paired with light variants) ────────── */
+  --teal: #0D9488;            --teal-light: #E6F7F5;
+  --purple: #7C5CFC;          --purple-light: #F0EDFF;
+  --green: #16A34A;           --green-light: #E8F8EE;
+  --amber: #D97706;           --amber-light: #FEF8E8;
+  --red: #DC2626;             --red-light: #FEF2F2;
+  --orange: #EA580C;          --orange-light: #FFF5EB;
+
+  /* ── Radii ───────────────────────────────────────────────── */
+  --radius-sm: 6px;   /* badges, chips, inline code */
+  --radius: 10px;     /* inner cards, panels, inputs */
+  --radius-lg: 16px;  /* primary cards, scenario cards */
+
+  /* ── Shadows ─────────────────────────────────────────────── */
+  --shadow:    0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.03);
+
+  /* ── Type families ───────────────────────────────────────── */
+  --font-sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ── Spacing rhythm (per guide) ──────────────────────────── */
+  --space-section: 36px;   /* between H1-level sections */
+  --space-card: 24px;      /* card internal padding */
+  --space-card-tight: 20px;
+  --space-list-gap: 12px;  /* between cards in a list */
+  --space-grid-gap: 16px;
+}
+
+/* ── Base resets ───────────────────────────────────────────── */
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Semantic type roles ───────────────────────────────────── */
+/* Use these classes for consistency with the guide's type scale. */
+
+.type-page-title {
+  font: 700 32px/1.2 var(--font-sans);
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.type-section-subtitle {
+  font: 400 15px/1.7 var(--font-sans);
+  color: var(--text-secondary);
+}
+
+.type-card-title {
+  font: 700 14px/1.35 var(--font-sans);
+  color: var(--text);
+}
+
+.type-subtitle {
+  font: 700 13px/1.4 var(--font-sans);
+  color: var(--text);
+}
+
+.type-body {
+  font: 700 12px/1.55 var(--font-sans);
+  color: var(--text-secondary);
+}
+
+.type-section-label {
+  font: 700 12px/1.3 var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+.type-badge {
+  font: 700 12px/1.3 var(--font-sans);
+}
+
+.type-nav-active   { font: 700 12px/1.3 var(--font-sans); }
+.type-nav-inactive { font: 500 12px/1.3 var(--font-sans); color: var(--text-tertiary); }
+
+.type-code {
+  font: 500 12px/1.5 var(--font-mono);
+  color: var(--text);
+}
+
+.type-stat       { font: 700 24px/1.1 var(--font-sans); color: var(--text); letter-spacing: -0.01em; }
+.type-stat-large { font: 700 36px/1.05 var(--font-sans); color: var(--text); letter-spacing: -0.02em; }
+
+/* ── Element-level defaults (optional convenience) ─────────── */
+h1 { font: 700 32px/1.2 var(--font-sans); letter-spacing: -0.02em; color: var(--text); margin: 0 0 12px; }
+h2 { font: 700 22px/1.3 var(--font-sans); color: var(--text); margin: 0 0 10px; }
+h3 { font: 700 16px/1.35 var(--font-sans); color: var(--text); margin: 0 0 8px; }
+p  { font: 400 15px/1.7 var(--font-sans); color: var(--text-secondary); margin: 0 0 12px; }
+code, pre { font-family: var(--font-mono); font-size: 12px; }
+small { font-size: 12px; color: var(--text-tertiary); }
