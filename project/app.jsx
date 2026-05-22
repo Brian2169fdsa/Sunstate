@@ -594,8 +594,8 @@ function App() {
             <span>{window.SunStateMock?.tripsCount?.toLocaleString() || "—"} trips indexed</span>
           </div>
           <div className="appHeader__user">
-            <div className="appHeader__avatar">DJ</div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>D. Jensen</span>
+            <div className="appHeader__avatar">{window._sunstateUser?.initials || "?"}</div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{window._sunstateUser?.displayName || ""}</span>
           </div>
         </div>
       </header>

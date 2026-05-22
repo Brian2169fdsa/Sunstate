@@ -178,6 +178,19 @@
 
     function _onAuthenticated(session) {
       _session = session;
+
+      // Build display name + initials from user metadata or email
+      const meta = session.user.user_metadata || {};
+      const fullName = meta.full_name || meta.name || '';
+      const email    = session.user.email || '';
+      const displayName = fullName || email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const words    = displayName.trim().split(/\s+/);
+      const initials = words.length >= 2
+        ? (words[0][0] + words[words.length - 1][0]).toUpperCase()
+        : displayName.slice(0, 2).toUpperCase();
+
+      window._sunstateUser = { displayName, initials, email };
+
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('logoutBtn').classList.add('show');
     }
