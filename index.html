@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sun State Transportation — Data Chat</title>
+  <link rel="stylesheet" href="project/colors_and_type.css" />
+  <link rel="stylesheet" href="project/app.css" />
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="project/mock-data.js"></script>
+
+  <style>
+    /* ── API key overlay ───────────────────────────────────── */
+    #keyOverlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(14, 22, 33, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      align-items: center;
+      justify-content: center;
+    }
+    #keyOverlay.show { display: flex; }
+
+    .keyCard {
+      background: #fff;
+      border-radius: 20px;
+      padding: 44px 40px 36px;
+      width: 480px;
+      max-width: calc(100vw - 32px);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08);
+      animation: keyCardIn 0.3s cubic-bezier(.22,.68,0,1.2) both;
+    }
+    @keyframes keyCardIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)   scale(1);    }
+    }
+
+    .keyCard__mark {
+      width: 44px; height: 44px;
+      background: #1E3348;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      margin-bottom: 22px;
+      box-shadow: 0 2px 8px rgba(30,51,72,0.25);
+    }
+
+    .keyCard__title {
+      font: 700 22px/1.2 'Montserrat', system-ui, sans-serif;
+      letter-spacing: -0.01em;
+      color: #1E293B;
+      margin: 0 0 8px;
+    }
+    .keyCard__sub {
+      font: 400 14px/1.65 'Montserrat', system-ui, sans-serif;
+      color: #475569;
+      margin: 0 0 28px;
+    }
+
+    .keyCard__err {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      color: #DC2626;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font: 500 13px/1.4 'Montserrat', system-ui, sans-serif;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .keyCard__err.show { display: block; }
+
+    .keyCard__label {
+      display: block;
+      font: 700 11px/1.3 'Montserrat', system-ui, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #7A8B9A;
+      margin-bottom: 8px;
+    }
+    .keyCard__input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 14px;
+      border: 1.5px solid #E2E6EC;
+      border-radius: 10px;
+      font: 500 13px/1.4 'JetBrains Mono', 'Courier New', monospace;
+      color: #1E293B;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      margin-bottom: 20px;
+      letter-spacing: 0.02em;
+    }
+    .keyCard__input:focus {
+      border-color: #4A8FD6;
+      box-shadow: 0 0 0 3px rgba(74,143,214,0.14);
+    }
+
+    .keyCard__btn {
+      width: 100%;
+      padding: 13px;
+      background: #4A8FD6;
+      color: white;
+      border: 0;
+      border-radius: 10px;
+      font: 700 14px/1 'Montserrat', system-ui, sans-serif;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .keyCard__btn:hover  { background: #2D6AAF; }
+    .keyCard__btn:active { transform: scale(0.98); }
+
+    .keyCard__note {
+      margin-top: 14px;
+      font: 500 11px/1.6 'Montserrat', system-ui, sans-serif;
+      color: #7A8B9A;
+      text-align: center;
+    }
+    .keyCard__note a {
+      color: #4A8FD6;
+      text-decoration: none;
+    }
+    .keyCard__note a:hover { text-decoration: underline; }
+
+    /* ── Settings button (always-visible, bottom-right) ─────── */
+    #settingsBtn {
+      position: fixed; bottom: 22px; right: 22px; z-index: 100;
+      width: 34px; height: 34px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      cursor: pointer;
+      color: var(--text-tertiary);
+      box-shadow: var(--shadow-md);
+      transition: color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+    #settingsBtn:hover {
+      color: var(--text);
+      border-color: #CFD6DF;
+      box-shadow: var(--shadow-lg);
+    }
+  </style>
+
+  <script>
+    const _KEY_STORE = 'sunstate_anthropic_key';
+
+    /* ── Claude API bridge ───────────────────────────────────── */
+    window.claude = {
+      complete: async function (prompt) {
+        const apiKey = localStorage.getItem(_KEY_STORE);
+        if (!apiKey) {
+          _showKeyOverlay();
+          throw new Error('API key required — enter it in the panel that just appeared.');
+        }
+
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: prompt }],
+          }),
+        });
+
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => ({}));
+          if (resp.status === 401) {
+            localStorage.removeItem(_KEY_STORE);
+            _showKeyOverlay('Invalid API key — please re-enter it.');
+          }
+          throw new Error(body.error?.message || `Anthropic API error ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        return data.content[0].text;
+      }
+    };
+
+    /* ── Overlay helpers ─────────────────────────────────────── */
+    function _showKeyOverlay(errMsg) {
+      const overlay = document.getElementById('keyOverlay');
+      if (!overlay) return;
+      overlay.classList.add('show');
+      const err = document.getElementById('keyErr');
+      if (errMsg) {
+        err.textContent = errMsg;
+        err.classList.add('show');
+      } else {
+        err.classList.remove('show');
+      }
+      setTimeout(() => document.getElementById('keyInput')?.focus(), 80);
+    }
+
+    function _hideKeyOverlay() {
+      document.getElementById('keyOverlay').classList.remove('show');
+    }
+
+    function _saveKey() {
+      const val = (document.getElementById('keyInput').value || '').trim();
+      const err = document.getElementById('keyErr');
+      if (!val) {
+        err.textContent = 'Please enter your Anthropic API key.';
+        err.classList.add('show');
+        return;
+      }
+      if (!val.startsWith('sk-ant-')) {
+        err.textContent = 'Key should start with sk-ant-…  Check and try again.';
+        err.classList.add('show');
+        return;
+      }
+      localStorage.setItem(_KEY_STORE, val);
+      _hideKeyOverlay();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // Show overlay immediately if no key is saved
+      if (!localStorage.getItem(_KEY_STORE)) _showKeyOverlay();
+
+      // Enter to save
+      document.getElementById('keyInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') _saveKey();
+      });
+
+      // Escape does nothing (overlay is intentionally modal until key is entered)
+    });
+  </script>
+</head>
+<body>
+
+  <!-- API key setup overlay -->
+  <div id="keyOverlay">
+    <div class="keyCard">
+      <div class="keyCard__mark">
+        <!-- Sun icon -->
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white"
+             stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+      </div>
+
+      <h2 class="keyCard__title">Connect to Claude</h2>
+      <p class="keyCard__sub">
+        Enter your Anthropic API key to start querying your trip data in plain
+        English. The key is stored only in your browser's local storage and is
+        sent exclusively to <code style="font-size:12px;">api.anthropic.com</code>.
+      </p>
+
+      <div id="keyErr" class="keyCard__err"></div>
+
+      <label class="keyCard__label" for="keyInput">Anthropic API Key</label>
+      <input
+        id="keyInput"
+        class="keyCard__input"
+        type="password"
+        placeholder="sk-ant-api03-…"
+        autocomplete="off"
+        spellcheck="false"
+      />
+
+      <button class="keyCard__btn" onclick="_saveKey()">Save &amp; start chatting →</button>
+
+      <p class="keyCard__note">
+        Don't have a key? Get one at
+        <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>.<br>
+        Your key never passes through any server other than Anthropic's API.
+      </p>
+    </div>
+  </div>
+
+  <!-- React app root -->
+  <div id="root"></div>
+
+  <!-- Settings button — reopens the API key overlay -->
+  <button id="settingsBtn" onclick="_showKeyOverlay()" title="API key settings" aria-label="API key settings">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  </button>
+
+  <script type="text/babel" src="project/app.jsx"></script>
+</body>
+</html>
