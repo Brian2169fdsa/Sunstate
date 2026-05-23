@@ -194,7 +194,15 @@ async function getLiveTrips(lookbackHours, callCountInSession) {
 }
 
 /* ── Claude agent loop ─────────────────────────────────────────────── */
-const SYSTEM_PROMPT = `You are a read-only data analyst for Sun State Transportation, a non-emergency medical transport company. You answer questions by writing PostgreSQL SELECT queries against ONE view: completed_trips_for_reports. Columns: "Date" (timestamptz, scheduled pickup), "Facility" (text), "Status" (text), "Space Type" (text), service_class (STR=stretcher, WC=wheelchair, AMB=ambulatory, OTHER), status_raw (completed|canceled|…), facility_raw, scheduled_pickup_at, trip_created_at, price_cents (integer; divide by 100 for dollars), distance_miles, driver_name, is_will_call (bool), lead_time_days. Mixed-case column names must be double-quoted in SQL. Business context: stretcher (STR) volume is the primary revenue signal; org baseline cancellation rate ≈20.6%; average lead time ≈3.9 days; ~65 facilities; data spans March 2025 to present. Completed trips = status_raw='completed'; cancellations = status_raw='canceled'. Rules: SELECT only; query only this view; never attempt to modify data; always state the time window in your answer; present dollars not cents; round sensibly; if the data can't answer a question, say so plainly rather than guessing. Default to warehouse SQL; only use get_live_trips when the user explicitly asks for live/today/now data that requires sub-hour freshness.`;
+const SYSTEM_PROMPT = `You are a read-only data analyst for Sun State Transportation, a non-emergency medical transport company. You answer questions by writing PostgreSQL SELECT queries against ONE view: completed_trips_for_reports. Columns: "Date" (timestamptz, scheduled pickup), "Facility" (text), "Status" (text), "Space Type" (text), service_class (STR=stretcher, WC=wheelchair, AMB=ambulatory, OTHER), status_raw (completed|canceled|…), facility_raw, scheduled_pickup_at, trip_created_at, price_cents (integer; divide by 100 for dollars), distance_miles, driver_name, is_will_call (bool), lead_time_days. Mixed-case column names must be double-quoted in SQL. Business context: stretcher (STR) volume is the primary revenue signal; org baseline cancellation rate ≈20.6%; average lead time ≈3.9 days; ~65 facilities; data spans March 2025 to present. Completed trips = status_raw='completed'; cancellations = status_raw='canceled'. Rules: SELECT only; query only this view; never attempt to modify data; always state the time window in your answer; present dollars not cents; round sensibly; if the data can't answer a question, say so plainly rather than guessing. Default to warehouse SQL; only use get_live_trips when the user explicitly asks for live/today/now data that requires sub-hour freshness.
+
+After running a query, call provide_visualization when the data suits it:
+- Weekly/monthly time series → type "area", xKey = date column, series = numeric column(s) to plot
+- Facility rankings / comparisons (top N, biggest drops) → type "bar", xKey = facility/name column, one series for the metric
+- Service mix (STR/WC/AMB) → type "donut", xKey = label column, series = [{name:"Trips", dataKey: count column}]
+- For any answer with 2–4 headline numbers (totals, rates, averages), include them in the stats array as [{label, value, delta?}] where delta is a string like "+12%" or "-3 trips"
+- Skip provide_visualization for simple single-sentence answers with no tabular data
+- Always include the full data array (not just a sample) in the chart spec`;
 
 const TOOLS = [
   {
@@ -217,6 +225,50 @@ const TOOLS = [
         lookback_hours: { type: 'number', description: 'Hours of data to fetch (max 48).' },
       },
       required: ['lookback_hours'],
+    },
+  },
+  {
+    name: 'provide_visualization',
+    description: 'Call after run_readonly_query to supply chart specs and/or stat tiles for the UI. Optional — only call when a chart or headline stats genuinely help.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        stats: {
+          type: 'array',
+          description: '2–4 headline metric tiles shown above the answer.',
+          items: {
+            type: 'object',
+            properties: {
+              label: { type: 'string' },
+              value: { type: 'string' },
+              delta: { type: 'string', description: 'Optional change string, e.g. "+12%" or "-3 trips"' },
+            },
+            required: ['label', 'value'],
+          },
+        },
+        chart: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['line', 'area', 'bar', 'donut'] },
+            title: { type: 'string' },
+            xKey: { type: 'string', description: 'Data key for x-axis / category label' },
+            series: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  dataKey: { type: 'string' },
+                  color: { type: 'string' },
+                },
+                required: ['name', 'dataKey'],
+              },
+            },
+            data: { type: 'array', description: 'Full data array for the chart.' },
+          },
+          required: ['type', 'xKey', 'series', 'data'],
+        },
+      },
     },
   },
 ];
@@ -242,6 +294,8 @@ async function runAgentLoop(messages) {
   let loopMessages = [...messages];
   let lastSQL = null;
   let lastRows = null;
+  let lastChart = null;
+  let lastStats = null;
   const MAX_ITERATIONS = 8;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
@@ -271,7 +325,7 @@ async function runAgentLoop(messages) {
     if (data.stop_reason === 'end_turn') {
       const textBlock = data.content.find(b => b.type === 'text');
       const text = textBlock?.text || '';
-      return { text, sql: lastSQL, rows: lastRows };
+      return { text, sql: lastSQL, rows: lastRows, chart: lastChart, stats: lastStats };
     }
 
     if (data.stop_reason === 'tool_use') {
@@ -299,6 +353,10 @@ async function runAgentLoop(messages) {
             liveTripCallsSoFar
           );
           toolResult = JSON.stringify(liveResult);
+        } else if (block.name === 'provide_visualization') {
+          if (block.input.chart) lastChart = block.input.chart;
+          if (block.input.stats) lastStats = block.input.stats;
+          toolResult = JSON.stringify({ ok: true });
         } else {
           toolResult = JSON.stringify({ error: `Unknown tool: ${block.name}` });
         }
@@ -318,15 +376,13 @@ async function runAgentLoop(messages) {
     const textBlock = data.content?.find(b => b.type === 'text');
     return {
       text: textBlock?.text || 'Unexpected response from agent.',
-      sql: lastSQL,
-      rows: lastRows,
+      sql: lastSQL, rows: lastRows, chart: lastChart, stats: lastStats,
     };
   }
 
   return {
     text: 'The agent reached its iteration limit. Try rephrasing.',
-    sql: lastSQL,
-    rows: lastRows,
+    sql: lastSQL, rows: lastRows, chart: lastChart, stats: lastStats,
   };
 }
 
