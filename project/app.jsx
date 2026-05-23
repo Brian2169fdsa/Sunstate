@@ -297,19 +297,33 @@ function UserMessage({ text }) {
 
 function AssistantMessage({ msg }) {
   const html = renderMarkdown(msg.text || '');
+  const hasContent = html || (msg.rows && msg.rows.length > 0) || msg.stats || msg.chart || msg.sql;
+  const emptyRows = msg.rows && msg.rows.length === 0 && !msg.text;
   return (
     <div className="msg msg--assistant fadeup">
       <div className="msg__avatar"><Icon.Sparkle /></div>
       <div className="msg__card">
-        {msg.sql && <SqlBlock sql={msg.sql} />}
-        {msg.stats && <StatTiles stats={msg.stats} />}
-        {msg.chart && <ChartBlock chart={msg.chart} />}
-        {html && (
-          <div className="msg__markdown"
-               dangerouslySetInnerHTML={{ __html: html }} />
+        {msg.error && (
+          <div className="msg__error">
+            <span className="msg__error__icon">⚠</span>
+            {msg.error}
+          </div>
         )}
-        {msg.rows && msg.rows.length > 0 && <SqlTable rows={msg.rows} />}
-        {msg.error && <div className="msg__error">{msg.error}</div>}
+        {!msg.error && (
+          <>
+            {msg.sql && <SqlBlock sql={msg.sql} />}
+            {msg.stats && <StatTiles stats={msg.stats} />}
+            {msg.chart && <ChartBlock chart={msg.chart} />}
+            {html && (
+              <div className="msg__markdown"
+                   dangerouslySetInnerHTML={{ __html: html }} />
+            )}
+            {msg.rows && msg.rows.length > 0 && <SqlTable rows={msg.rows} />}
+            {emptyRows && (
+              <div className="msg__empty">No trips found for that facility or period.</div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
@@ -427,6 +441,9 @@ function App() {
       setStatus(STATUS_CYCLE[cycleIdx]);
     }, 2800);
 
+    const controller = new AbortController();
+    const fetchTimeout = setTimeout(() => controller.abort(), 90000);
+
     try {
       const token = window._sunstateSession?.access_token;
       const resp = await fetch('/api/chat', {
@@ -436,6 +453,7 @@ function App() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ messages: apiHistory }),
+        signal: controller.signal,
       });
 
       if (!resp.ok) {
@@ -454,12 +472,18 @@ function App() {
         stats: data.stats || null,
       }]);
     } catch (e) {
+      const errMsg = e.name === 'AbortError'
+        ? 'That query took too long — try narrowing the date range.'
+        : /fetch|network|failed to fetch/i.test(e.message || '')
+        ? 'Unable to retrieve data right now. Check your connection and try again.'
+        : e.message || 'Something went wrong.';
       setMessages(prev => [...prev, {
         id: 'a' + Date.now(),
         role: 'assistant',
-        error: 'Something went wrong: ' + (e.message || String(e)),
+        error: errMsg,
       }]);
     } finally {
+      clearTimeout(fetchTimeout);
       clearInterval(timer);
       setBusy(false);
       setStatus('');

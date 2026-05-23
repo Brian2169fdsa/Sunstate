@@ -407,12 +407,19 @@ body { background: var(--bg); color: var(--text); overflow: hidden; }
   color: var(--text-3);
 }
 
-/* ── Error ────────────────────────────────────────────────── */
+/* ── Error / empty states ─────────────────────────────────── */
 .msg__error {
   background: #fff5f5; border: 1px solid #fecaca;
   color: var(--red); padding: 10px 14px;
   border-radius: var(--radius);
   font: 500 13px/1.5 var(--font-sans);
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.msg__error__icon { flex: none; font-size: 15px; line-height: 1.5; }
+.msg__empty {
+  font: 500 13px/1.5 var(--font-sans);
+  color: var(--text-3);
+  padding: 4px 0;
 }
 
 /* ── Composer ─────────────────────────────────────────────── */
@@ -501,4 +508,32 @@ body { background: var(--bg); color: var(--text); overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fadeup { animation: none; }
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .appHeader__inner { padding: 0 12px; gap: 8px; }
+  .appHeader__meta  { display: none; }
+  .appHeader__username { display: none; }
+
+  .chat__inner { padding: 16px 10px 8px; }
+
+  .msg--assistant { gap: 8px; }
+  .msg__avatar    { width: 22px; height: 22px; }
+  .msg__card      { padding: 12px 14px; }
+  .msg__bubble--user { max-width: 88%; }
+
+  .composer__inner { padding: 10px 10px 8px; }
+  .chips { gap: 5px; }
+  .chip  { font-size: 11px; padding: 6px 10px; }
+
+  /* Tables scroll horizontally — min-width forces scrollbar rather than squish */
+  .dtbl { min-width: 480px; }
+
+  /* Charts remain full width via ResponsiveContainer; just clamp height */
+  .chart-card { overflow-x: auto; }
+
+  /* Stat tiles wrap on small screens */
+  .stat-tiles { flex-wrap: wrap; }
+  .stat-tile  { min-width: 120px; flex: 1 1 120px; }
 }

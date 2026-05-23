@@ -29,6 +29,7 @@ function dbConfig() {
     password: process.env.AGENT_DB_PASSWORD,
     ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 8000,
+    statement_timeout: 15000,
   };
 }
 
@@ -91,7 +92,14 @@ async function runQuery(sql) {
     const result = await client.query(finalSql);
     return { rows: result.rows, rowCount: result.rowCount, sql: finalSql };
   } catch (err) {
-    return { error: err.message || 'Database error', sql: finalSql };
+    const isTimeout = err.code === '57014' || /statement timeout|query timeout/i.test(err.message || '');
+    const isConnErr = err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT';
+    const friendly = isTimeout
+      ? 'That query took too long — try narrowing the date range or adding a more specific facility filter.'
+      : isConnErr
+      ? 'Unable to reach the database right now. Please try again in a moment.'
+      : err.message || 'Database error';
+    return { error: friendly, sql: finalSql };
   } finally {
     await client.end().catch(() => {});
   }
@@ -195,6 +203,8 @@ async function getLiveTrips(lookbackHours, callCountInSession) {
 
 /* ── Claude agent loop ─────────────────────────────────────────────── */
 const SYSTEM_PROMPT = `You are a read-only data analyst for Sun State Transportation, a non-emergency medical transport company. You answer questions by writing PostgreSQL SELECT queries against ONE view: completed_trips_for_reports. Columns: "Date" (timestamptz, scheduled pickup), "Facility" (text), "Status" (text), "Space Type" (text), service_class (STR=stretcher, WC=wheelchair, AMB=ambulatory, OTHER), status_raw (completed|canceled|…), facility_raw, scheduled_pickup_at, trip_created_at, price_cents (integer; divide by 100 for dollars), distance_miles, driver_name, is_will_call (bool), lead_time_days. Mixed-case column names must be double-quoted in SQL. Business context: stretcher (STR) volume is the primary revenue signal; org baseline cancellation rate ≈20.6%; average lead time ≈3.9 days; ~65 facilities; data spans March 2025 to present. Completed trips = status_raw='completed'; cancellations = status_raw='canceled'. Rules: SELECT only; query only this view; never attempt to modify data; always state the time window in your answer; present dollars not cents; round sensibly; if the data can't answer a question, say so plainly rather than guessing. Default to warehouse SQL; only use get_live_trips when the user explicitly asks for live/today/now data that requires sub-hour freshness.
+
+CANCELLATION RATE — mandatory formula (non-negotiable): always compute as 100.0 * count(*) FILTER (WHERE status_raw='canceled') / NULLIF(count(*) FILTER (WHERE status_raw IN ('completed','canceled')), 0). The denominator is resolved trips only (completed + canceled) — never COUNT(*) over all statuses, which understates the rate by including scheduled/no-show rows. The org baseline of 20.6% was computed this way; all facility rates must use the same formula to be comparable.
 
 After running a query, call provide_visualization when the data suits it:
 - Weekly/monthly time series → type "area", xKey = date column, series = numeric column(s) to plot
