@@ -372,6 +372,7 @@ function App() {
   const [input, setInput]       = useState('');
   const [busy, setBusy]         = useState(false);
   const [status, setStatus]     = useState('');
+  const [tripCount, setTripCount] = useState(null);
   const scrollRef = useRef(null);
   const taRef     = useRef(null);
 
@@ -379,6 +380,20 @@ function App() {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, busy]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const id = setInterval(() => {
+      const token = window._sunstateSession?.access_token;
+      if (!token) return;
+      clearInterval(id);
+      fetch('/api/count', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (!cancelled && d?.count != null) setTripCount(d.count); })
+        .catch(() => {});
+    }, 300);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
   useEffect(() => {
     const ta = taRef.current;
@@ -472,7 +487,7 @@ function App() {
           <div className="appHeader__spacer" />
           <div className="appHeader__meta">
             <span><span className="dot" /> Live</span>
-            <span>{window.SunStateMock?.tripsCount?.toLocaleString() || '—'} trips indexed</span>
+            {tripCount !== null && <span>{tripCount.toLocaleString()} trips indexed</span>}
           </div>
           <div className="appHeader__user">
             <div className="appHeader__avatar">
