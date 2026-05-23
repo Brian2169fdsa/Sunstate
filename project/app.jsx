@@ -73,7 +73,7 @@ const SUGGESTIONS = [
   { label: "Which facilities are down this month?",      icon: "TrendDown" },
   { label: "Top facilities by trip volume",              icon: "BarChart"  },
   { label: "Cancellation rate by facility",              icon: "Slash"     },
-  { label: "Revenue trend for Memorial Regional",        icon: "Dollar"    },
+  { label: "Revenue trend for Chandler Post Acute",       icon: "Dollar"    },
   { label: "Stretcher vs wheelchair mix",                icon: "Layers"    },
 ];
 
@@ -478,7 +478,14 @@ function App() {
       <header className="appHeader">
         <div className="appHeader__inner">
           <a className="brand" href="#">
-            <div className="brand__mark"><Icon.Sun /></div>
+            <div className="brand__mark">
+              <img
+                src="https://sunstatetransport.com/_assets/v11/dbfb5ad9dd63dd155a492df7a041d2ab2de996b5.png"
+                alt="Sun State Transportation"
+                className="brand__logo"
+                onError={e => { e.currentTarget.style.display = 'none'; }}
+              />
+            </div>
             <div>
               <div className="brand__name">Sun State Transportation</div>
               <div className="brand__sub">Data Chat · Read-only</div>
@@ -537,7 +544,15 @@ function App() {
               </button>
             </div>
             <div className="composer__footer">
-              <span>Press <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for newline</span>
+              <span className="composer__powered">
+                <span>Powered by</span>
+                <img
+                  src="https://manageai.io/wp-content/uploads/2026/03/manage_aiArtboard-1.webp"
+                  alt="Manage AI"
+                  className="composer__powered__logo"
+                  onError={e => { e.currentTarget.style.display = 'none'; }}
+                />
+              </span>
               <span>Queries are read-only · No patient data in scope</span>
             </div>
           </div>
