@@ -231,16 +231,37 @@ function SqlBlock({ sql }) {
 }
 
 /* ── Generic SQL results table ──────────────────────────────── */
+const COL_CURRENCY = /revenue|fare|price|cost|amount|total_usd|avg_usd|usd|\$/i;
+const COL_PCT      = /pct|rate|percent|%/i;
+const COL_INTEGER  = /\bcount\b|trips|rows|total(?!_usd)|num_/i;
+
+function fmtTableNum(val, col) {
+  if (typeof val !== 'number') return String(val);
+  if (COL_CURRENCY.test(col)) {
+    return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  if (COL_PCT.test(col)) {
+    return val.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+  }
+  if (COL_INTEGER.test(col) || Number.isInteger(val)) {
+    return val.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
+  // Fallback: strip long trailing zeros, cap at 2 decimals
+  const rounded = Math.round(val * 100) / 100;
+  return rounded.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
 function SqlTable({ rows }) {
   if (!rows || rows.length === 0) return null;
   const cols = Object.keys(rows[0]);
   const display = rows.slice(0, 100);
   const truncated = rows.length > 100;
 
-  function fmtCell(val) {
+  function fmtCell(val, col) {
     if (val === null || val === undefined) return '—';
     if (typeof val === 'boolean') return val ? 'Yes' : 'No';
     if (typeof val === 'object') return JSON.stringify(val);
+    if (typeof val === 'number') return fmtTableNum(val, col);
     return String(val);
   }
 
@@ -270,7 +291,7 @@ function SqlTable({ rows }) {
                   const extra = isDelta ? ' ' + deltaClass(row[c]) : '';
                   return (
                     <td key={c} className={(isNum ? 'num' : '') + extra}>
-                      {fmtCell(row[c])}
+                      {fmtCell(row[c], c)}
                     </td>
                   );
                 })}
