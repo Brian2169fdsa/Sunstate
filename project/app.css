@@ -57,15 +57,14 @@ body { background: var(--bg); color: var(--text); overflow: hidden; }
   text-decoration: none;
 }
 .brand__mark {
-  width: 34px; height: 34px; border-radius: 8px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.16);
-  display: grid; place-items: center;
-  color: white;
-  overflow: hidden;
+  width: 36px; height: 36px; border-radius: 8px;
+  background: white;
+  border: 1.5px solid #2e7bce;
+  display: flex; align-items: center; justify-content: center;
+  flex: none;
 }
 .brand__logo {
-  width: 100%; height: 100%;
+  width: calc(100% - 8px); height: calc(100% - 8px);
   object-fit: contain;
   display: block;
 }
