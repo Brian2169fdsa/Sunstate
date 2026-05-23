@@ -178,6 +178,7 @@
 
     function _onAuthenticated(session) {
       _session = session;
+      window._sunstateSession = session;  // expose token for /api/chat
 
       // Build display name + initials from user metadata or email
       const meta = session.user.user_metadata || {};
@@ -197,6 +198,7 @@
 
     function _onSignedOut() {
       _session = null;
+      window._sunstateSession = null;  // clear token on sign-out
       document.getElementById('loginOverlay').style.display = 'flex';
       document.getElementById('logoutBtn').classList.remove('show');
     }
